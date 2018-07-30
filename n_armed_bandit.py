@@ -24,12 +24,12 @@ for i in range(len(eps)):
             if np.random.uniform() < eps[i]:
                 a = np.random.randint(0, n)
             else:
-                a = q.index(max(q))
-            r = [np.random.normal(q_star[ai], 1) for ai in range(n)]
-            q[a] += (r[a] - q[a])/(k[a] + 1)
+                a = np.argmax(q)
+            r = np.random.normal(q_star[a], 1)
+            q[a] += (r - q[a])/(k[a] + 1)
             k[a] += 1
-            r_means[p] += r[a]
-            if r[a] == max(r):
+            r_means[p] += r
+            if a == np.argmax(q_star):
                 optimals[p] += 1
     optimals = [100*x/tasks_num for x in optimals]
     r_means = [x/tasks_num for x in r_means]
