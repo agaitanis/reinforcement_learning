@@ -23,7 +23,7 @@ for i in range(len(eps)):
                 a = np.random.randint(0, n)
             else:
                 a = q.index(max(q))
-            r = q_star[a] + np.random.normal() 
+            r = np.random.normal(q_star[a], 1) 
             q[a] += (r - q[a])/(k[a] + 1)
             k[a] += 1
             r_means[p] += (r - r_means[p])/(j + 1)
