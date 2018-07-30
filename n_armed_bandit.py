@@ -11,9 +11,11 @@ labels = ['eps = ' + str(x) for x in eps]
 colors = ['red', 'green', 'blue']
 
 plays = range(1, plays_num + 1)
+f, (ax1, ax2) = plt.subplots(2, sharex=True)
 
 for i in range(len(eps)):
     r_means = plays_num*[0]
+    optimals = plays_num*[0]
     for j in range(tasks_num):
         q_star = np.random.normal(size=n)
         q = n*[0]
@@ -23,13 +25,23 @@ for i in range(len(eps)):
                 a = np.random.randint(0, n)
             else:
                 a = q.index(max(q))
-            r = np.random.normal(q_star[a], 1) 
-            q[a] += (r - q[a])/(k[a] + 1)
+            r = [np.random.normal(q_star[ai], 1) for ai in range(n)]
+            q[a] += (r[a] - q[a])/(k[a] + 1)
             k[a] += 1
-            r_means[p] += (r - r_means[p])/(j + 1)
-    plt.plot(plays, r_means, color=colors[i], label=labels[i])
+            r_means[p] += r[a]
+            if r[a] == max(r):
+                optimals[p] += 1
+    optimals = [100*x/tasks_num for x in optimals]
+    r_means = [x/tasks_num for x in r_means]
+    ax1.plot(plays, r_means, color=colors[i], label=labels[i])
+    ax2.plot(plays, optimals, color=colors[i], label=labels[i])
 
-plt.xlabel('Plays')
-plt.ylabel('Average Reward')
-plt.legend()
+ax1.set_xlabel('Plays')
+ax1.set_ylabel('Average Reward')
+ax1.legend()
+
+ax2.set_xlabel('Plays')
+ax2.set_ylabel('% Optimal Action')
+ax2.legend()
+
 plt.show()
