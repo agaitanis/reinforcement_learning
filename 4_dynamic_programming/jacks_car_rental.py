@@ -18,7 +18,7 @@ def action_to_index(a):
 
 def main():
     theta = 1e-6
-    gamma = 1
+    gamma = 0.9
     V = np.zeros(states_num1, states_num2)
     policy = np.zeros(states_num1, states_num2, actions_num)
     delta = theta + 1
