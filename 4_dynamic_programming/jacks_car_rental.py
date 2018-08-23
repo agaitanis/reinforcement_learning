@@ -3,6 +3,7 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import MaxNLocator
+from mpl_toolkits.mplot3d import Axes3D
 
 
 MAX_CARS1 = 20
@@ -11,7 +12,7 @@ LAMBDA_RENTALS1 = 3
 LAMBDA_RENTALS2 = 4
 LAMBDA_RETURNS1 = 3
 LAMBDA_RETURNS2 = 2
-POISSON_POINTS_NUM = 20
+POISSON_POINTS_NUM = 15
 RENTAL_REWARD = 10
 MOVE_COST = 2
 THETA = 1e-6
