@@ -1,3 +1,9 @@
+'''
+Reinforcement Learning by Sutton and Barto
+4. Dynamic Programming
+4.3 Policy Iteration
+Example 4.2: Jack's Car Rental
+'''
 import numpy as np
 import math
 import matplotlib.pyplot as plt

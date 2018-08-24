@@ -1,3 +1,9 @@
+'''
+Reinforcement Learning by Sutton and Barto
+4. Dynamic Programming
+4.1 Policy Evaluation
+Example 4.1: 4x4 Gridworld
+'''
 import numpy as np
 
 UP = 0
