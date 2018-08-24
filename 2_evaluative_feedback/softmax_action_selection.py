@@ -1,3 +1,8 @@
+'''
+Reinforcement Learning by Sutton and Barto
+2. Evaluative Feedback
+2.3 Softmax Action Selection
+'''
 import numpy as np
 import matplotlib.pyplot as plt
 import bisect

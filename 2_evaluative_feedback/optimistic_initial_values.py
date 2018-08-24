@@ -1,3 +1,8 @@
+'''
+Reinforcement Learning by Sutton and Barto
+2. Evaluative Feedback
+2.7 Optimistic Initial Values
+'''
 import numpy as np
 import matplotlib.pyplot as plt
 
