@@ -146,7 +146,7 @@ def plot_policy_and_V(policy, V):
     ax3.set_title('V*\nUsable Ace')
     plot_V(V, True, ax3)
     ax4 = fig.add_subplot(224, projection='3d')
-    ax4.set_title('V*\nNo Usable Ace')
+    ax4.set_title('No Usable Ace')
     ax4.set_xlabel('Dealer Showing')
     ax4.set_ylabel('Player Sum')
     plot_V(V, False, ax4)
