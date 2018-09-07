@@ -10,48 +10,50 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
 
-def generate_episode(actions):
+HIT = 0
+STICK = 1
+
+
+def generate_episode(policy):
     dealer_showing = min(np.random.randint(1, 14), 10)
     dealer_hidden = min(np.random.randint(1, 14), 10)
-    dealer_sum = 0   
+    dealer_sum = 0
+    dealer_usable_ace = False
+    dealer_sum += dealer_showing
     if dealer_showing == 1:
-        dealer_sum += 11
-    else:
-        dealer_sum += dealer_showing            
-    if dealer_hidden == 1:
-        dealer_sum += 11
-        if dealer_sum > 21:
-            dealer_sum -= 10
-    else:
-        dealer_sum += dealer_hidden
-
+        dealer_sum += 10
+        dealer_usable_ace = True
+    dealer_sum += dealer_hidden
+    if dealer_sum > 21 and dealer_usable_ace:
+        dealer_sum -= 10
+        dealer_usable_ace = False
+    if dealer_hidden == 1 and dealer_sum <= 11:
+        dealer_sum += 10
+        dealer_usable_ace = True
+        
     states = []
     player_sum = 0
     player_cards_num = 0
     usable_ace = False
-    while True:
+    action = HIT
+    while action == HIT:
         player_card = min(np.random.randint(1, 14), 10)
         player_cards_num += 1
-        if player_card == 1:
-            if usable_ace:
-                player_sum += 1
-            else:
-                if player_sum <= 10:
-                    player_sum += 11
-                    usable_ace = True
-                else:
-                    player_sum += 1
-        else:
-            player_sum += player_card
+        player_sum += player_card
+        if player_sum > 21 and usable_ace:
+            player_sum -= 10
+            usable_ace = False
+        if player_card == 1 and player_sum <= 11:
+            player_sum += 10
+            usable_ace = True
         if player_sum <= 11:
             continue
         if player_sum > 21:
             break
         s = (player_sum, dealer_showing, usable_ace)
+        action = policy[s]
         states.append(s)
-        if actions[s] == 'stick':
-            break
-    
+        
     reward = 0
     if player_sum == 21 and player_cards_num == 2:
         if dealer_sum == 21:
@@ -63,13 +65,13 @@ def generate_episode(actions):
     else:
         while dealer_sum < 17:
             dealer_card = min(np.random.randint(1, 14), 10)
-            if dealer_card == 1:
-                if dealer_sum <= 10:
-                    dealer_sum += 11
-                else:
-                    dealer_sum += 1
-            else:
-                dealer_sum += dealer_card
+            dealer_sum += dealer_card
+            if dealer_sum > 21 and dealer_usable_ace:
+                dealer_sum -= 10
+                dealer_usable_ace = False
+            if dealer_card == 1 and dealer_sum <= 11:
+                dealer_sum += 10
+                dealer_usable_ace = True
         if dealer_sum > 21:
             reward = 1
         else:
@@ -110,7 +112,7 @@ def policy_evaluation(episodes_num, ax1, ax2):
     np.random.seed(0)
     V = {}
     cnt = {}
-    actions = {}
+    policy = {}
     
     for player_sum in range(12, 22):
         for dealer_showing in range(1, 11):
@@ -119,12 +121,12 @@ def policy_evaluation(episodes_num, ax1, ax2):
                 V[s] = 0
                 cnt[s] = 0
                 if player_sum >= 20:
-                    actions[s] = 'stick'
+                    policy[s] = STICK
                 else:
-                    actions[s] = 'hit'
+                    policy[s] = HIT
     
     for i in range(episodes_num):
-        reward, states = generate_episode(actions)
+        reward, states = generate_episode(policy)
         for s in states:
             cnt[s] += 1
             V[s] += (reward - V[s])/cnt[s]
