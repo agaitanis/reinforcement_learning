@@ -55,7 +55,7 @@ def mc_plot_errors():
     for alpha in (0.01, 0.02, 0.03, 0.04):
         mean_errors = np.zeros(episodes_num)
         for run in range(runs_num):
-            V = [0, 0.5, 0.5, 0.5, 0.5, 0.5, 0]
+            V = [0, 0.5, 0.5, 0.5, 0.5, 0.5, 1]
             for i in range(episodes_num):
                 episode_states = []
                 s = initial_state
