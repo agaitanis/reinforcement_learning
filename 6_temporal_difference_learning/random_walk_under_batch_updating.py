@@ -1,8 +1,8 @@
 '''
 Reinforcement Learning by Sutton and Barto
 6. Temporal-Difference Learning
-6.2 Advantages of TD Prediction Methods
-Example 6.2: Random Walk
+6.3 Optimality of TD(0)
+Example 6.3: Random Walk under Batch Updating
 '''
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,10 +15,12 @@ def td_plot_V():
     initial_state = 3
     end_states = (0, 6)
     win_state = 6
-    alpha = 0.1
+    alpha = 0.001
     gamma = 1
-    episodes_num = 1000
-    episodes = [0, 1, 10, 1000]
+    episodes_num = 100
+    episodes = [0, 1, 10, 100]
+    experience = []
+    theta = 1e-3
     
     plt.figure()
     
@@ -31,8 +33,18 @@ def td_plot_V():
             r = 0
             if new_s == win_state:
                 r = 1
-            V[s] += alpha*(r + gamma*V[new_s] - V[s])
-            s = new_s  
+            experience.append((s, r, new_s))
+            s = new_s
+        delta = theta + 1
+        while delta > theta:
+            delta = 0
+            total = np.zeros(len(V))
+            for s, r, new_s in experience[-100:]:
+                total[s] += alpha*(r + gamma*V[new_s] - V[s])
+            for s in range(len(V)):
+                v = V[s]
+                V[s] += total[s]
+                delta = max(delta, abs(v - V[s]))
         
     plt.plot(true_V, label="true values", marker='.')
     plt.xlabel("State")
