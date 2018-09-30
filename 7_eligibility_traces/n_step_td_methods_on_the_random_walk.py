@@ -7,6 +7,18 @@ Example 7.1: n-Step TD Methods on the Random Walk
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import deque
+
+
+def update_V_from_buffer(V, buffer, alpha, gamma):
+    n = len(buffer)
+    R = 0
+    for i, (s, r, new_s) in enumerate(buffer):
+        R += np.power(gamma, i)*r
+    new_s = buffer[-1][2]
+    R += np.power(gamma, n)*V[new_s]
+    s = buffer[0][0]
+    V[s] += alpha*(R - V[s])
 
 
 def random_walk(n, alpha):
@@ -25,12 +37,21 @@ def random_walk(n, alpha):
     
     for i in range(episodes_num):
         s = start_state
+        buffer = deque()
         while s not in end_states:
             a = np.random.choice((-1, 1))
             new_s = s + a
             r = rewards[new_s]
-            V[s] += alpha*(r + gamma*V[new_s] - V[s])
+            buffer.append((s, r, new_s))
             s = new_s
+            if len(buffer) > n:
+                buffer.popleft()
+            if len(buffer) < n:
+                continue
+            update_V_from_buffer(V, buffer, alpha, gamma)
+        while len(buffer) > 1:
+            buffer.popleft()
+            update_V_from_buffer(V, buffer, alpha, gamma)
         error += np.sqrt(np.mean([np.power(V[s] - true_V[s], 2) for s in states[1:-1]]))
         
     error /= episodes_num
@@ -40,8 +61,10 @@ def random_walk(n, alpha):
 
 def main():
     np.random.seed(0)
-    n_steps = [1]
-    alphas = np.arange(0, 1.05, 0.05)
+    n_steps = [1, 2, 3, 5, 8, 15, 30, 60, 100, 200, 1000]
+    alphas = [0, 0.01, 0.02, 0.05,
+              0.1, 0.2, 0.3, 0.4, 0.5,
+              0.6, 0.7, 0.8, 0.9, 1.0]
     runs_num = 100
     
     plt.figure()
