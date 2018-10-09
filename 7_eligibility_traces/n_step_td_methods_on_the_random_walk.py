@@ -37,15 +37,13 @@ def random_walk(n, alpha):
     
     for i in range(episodes_num):
         s = start_state
-        buffer = deque()
+        buffer = deque(maxlen=n)
         while s not in end_states:
             a = np.random.choice((-1, 1))
             new_s = s + a
             r = rewards[new_s]
             buffer.append((s, r, new_s))
             s = new_s
-            if len(buffer) > n:
-                buffer.popleft()
             if len(buffer) < n:
                 continue
             update_V_from_buffer(V, buffer, alpha, gamma)
