@@ -22,10 +22,33 @@ class WeightedRandomGenerator(object):
         return bisect.bisect_right(self.totals, rnd)
 
 
-def random_boltzmann(q, T):
-    weights = [np.exp(q[a]/T) for a in range(len(q))]
-    rand_gen = WeightedRandomGenerator(weights)
-    return rand_gen.next()
+class Agent(object):
+    def __init__(self, n, tau):
+        self.n = n
+        self.tau = tau
+        self.Q = np.zeros(n)
+        self.k = np.zeros(n)
+    
+    def select_action(self):
+        weights = np.exp(self.Q/self.tau)
+        rand_gen = WeightedRandomGenerator(weights)
+        return rand_gen.next()
+    
+    def accept_reward(self, a, r):
+        self.k[a] += 1
+        self.Q[a] += (r - self.Q[a])/self.k[a]
+
+
+class Environment(object):
+    def __init__(self, n):
+        self.Q_star = np.random.normal(size=n)
+        self.optimal_action = np.argmax(self.Q_star)
+    
+    def give_reward(self, a):
+        return np.random.normal(self.Q_star[a], 1)
+    
+    def get_optimal_action(self):
+        return self.optimal_action
 
 
 def main():
@@ -33,32 +56,30 @@ def main():
     n = 10
     plays_num = 1000
     tasks_num = 2000
-    tau = [0.01, 0.1, 0.2, 1]
-    labels = ['tau = ' + str(x) for x in tau]
-    
-    plays = range(1, plays_num + 1)
+    tau = [0.01, 0.1, 0.2, 1] 
+     
     f, (ax1, ax2) = plt.subplots(2, sharex=True)
     
     for i in range(len(tau)):
-        r_means = np.zeros(plays_num)
+        avg_rewards = np.zeros(plays_num)
         optimals = np.zeros(plays_num)
         for j in range(tasks_num):
-            q_star = np.random.normal(size=n)
-            a_optimal = np.argmax(q_star)
-            q = np.zeros(n)
-            k = np.zeros(n)
+            env = Environment(n)
+            agent = Agent(n, tau[i])
+            a_optimal = env.get_optimal_action()
             for p in range(plays_num):
-                a = random_boltzmann(q, tau[i])
-                r = np.random.normal(q_star[a], 1)
-                q[a] += (r - q[a])/(k[a] + 1)
-                k[a] += 1
-                r_means[p] += r
+                a = agent.select_action()
+                r = env.give_reward(a)
+                agent.accept_reward(a, r)
+                avg_rewards[p] += r
                 if a == a_optimal:
                     optimals[p] += 1
+        plays = range(1, plays_num + 1)
         optimals = [100*x/tasks_num for x in optimals]
-        r_means = [x/tasks_num for x in r_means]
-        ax1.plot(plays, r_means, label=labels[i])
-        ax2.plot(plays, optimals, label=labels[i])
+        avg_rewards = [x/tasks_num for x in avg_rewards]      
+        label = 'tau = ' + str(tau[i])
+        ax1.plot(plays, avg_rewards, label=label)
+        ax2.plot(plays, optimals, label=label)
     
     ax1.set_xlabel('Plays')
     ax1.set_ylabel('Average Reward')
