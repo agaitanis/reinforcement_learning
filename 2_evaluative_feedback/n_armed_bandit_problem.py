@@ -20,7 +20,7 @@ class Agent(object):
         else:
             return np.argmax(self.Q)
     
-    def accept_reward(self, a, r):
+    def receive_reward(self, a, r):
         self.k[a] += 1
         self.Q[a] += (r - self.Q[a])/self.k[a]
 
@@ -56,7 +56,7 @@ def main():
             for p in range(plays_num):
                 a = agent.select_action()
                 r = env.give_reward(a)
-                agent.accept_reward(a, r)
+                agent.receive_reward(a, r)
                 avg_rewards[p] += r
                 if a == optimal_action:
                     optimal_actions[p] += 1
