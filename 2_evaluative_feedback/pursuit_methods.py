@@ -22,9 +22,73 @@ class WeightedRandomGenerator(object):
         return bisect.bisect_right(self.totals, rnd)
 
 
-def rand_by_weights(weights):
-    rand_gen = WeightedRandomGenerator(weights)
-    return rand_gen.next()
+class Agent1(object):
+    def __init__(self, n, beta):
+        self.n = n
+        self.beta = beta
+        self.Q = np.zeros(n)
+        self.k = np.zeros(n)
+        self.probs = np.full(n, 1/n)
+    
+    def select_action(self):
+        rand_gen = WeightedRandomGenerator(self.probs)
+        return rand_gen.next()
+    
+    def receive_reward(self, a, r):
+        self.k[a] += 1
+        self.Q[a] += (r - self.Q[a])/self.k[a]
+        a_star = np.argmax(self.Q)
+        self.probs[a_star] += self.beta*(1 - self.probs[a_star])
+        for a in range(self.n):
+            if a != a_star:
+                self.probs[a] += self.beta*(0 - self.probs[a])
+
+
+class Agent2(object):
+    def __init__(self, n, beta, alpha):
+        self.beta = beta
+        self.alpha = alpha
+        self.p = np.zeros(n)
+        self.r_mean = 0
+    
+    def select_action(self):
+        weights = np.exp(self.p)
+        rand_gen = WeightedRandomGenerator(weights)
+        return rand_gen.next()
+    
+    def receive_reward(self, a, r):
+        self.p[a] += self.beta*(r - self.r_mean)
+        self.r_mean += self.alpha*(r - self.r_mean)
+
+
+class Agent3(object):
+    def __init__(self, n, eps):
+        self.n = n
+        self.eps = eps
+        self.Q = np.zeros(n)
+        self.k = np.zeros(n)
+    
+    def select_action(self):
+        if np.random.uniform() < self.eps:
+            return np.random.randint(0, self.n)
+        else:
+            return np.argmax(self.Q)
+        
+    def receive_reward(self, a, r):
+        self.k[a] += 1
+        self.Q[a] += (r - self.Q[a])/self.k[a]
+
+
+class Environment(object):
+    def __init__(self, n):
+        self.Q_star = np.random.normal(size=n)
+        self.optimal_action = np.argmax(self.Q_star)
+    
+    def give_reward(self, a):
+        return np.random.normal(self.Q_star[a], 1)
+    
+    def get_optimal_action(self):
+        return self.optimal_action
 
 
 def main():
@@ -39,53 +103,24 @@ def main():
     plays = range(1, plays_num + 1)
     
     for i in range(3):
-        optimals = plays_num*[0]
+        optimal_actions = np.zeros(plays_num)
         for j in range(tasks_num):
-            q_star = np.random.normal(size=n)
-            a_optimal = np.argmax(q_star)
-            if i == 0: # pursuit
-                beta = 0.01
-                k = n*[0]
-                q = n*[0]
-                p = n*[1/n]
-                for t in range(plays_num):
-                    a = rand_by_weights(p)
-                    r = np.random.normal(q_star[a], 1)
-                    k[a] += 1
-                    q[a] += (r - q[a])/k[a]
-                    a_star = np.argmax(q)
-                    p[a_star] += beta*(1 - p[a_star])
-                    for ai in range(n):
-                        if ai == a_star: continue
-                        p[ai] += beta*(0 - p[ai])
-                    if a == a_optimal: optimals[t] += 1
-            elif i == 1: # reinforcement comparison
-                alpha = 0.1
-                beta = 0.1
-                p = n*[0]
-                r_mean = 0
-                for t in range(plays_num):
-                    a = rand_by_weights(np.exp(p))
-                    r = np.random.normal(q_star[a], 1)
-                    p[a] += beta*(r - r_mean)
-                    r_mean += alpha*(r - r_mean)
-                    if a == a_optimal: optimals[t] += 1
-            else: # ε-greedy
-                eps = 0.1
-                q = n*[0]
-                k = n*[0]
-                for t in range(plays_num):
-                    if np.random.uniform() < eps:
-                        a = np.random.randint(0, n)
-                    else:
-                        a = np.argmax(q)
-                    r = np.random.normal(q_star[a], 1)
-                    k[a] += 1
-                    q[a] += (r - q[a])/k[a]
-                    if a == a_optimal: optimals[t] += 1          
-
-        optimals = [100*x/tasks_num for x in optimals]
-        plt.plot(plays, optimals, label=labels[i])
+            env = Environment(n)
+            if i == 0:
+                agent = Agent1(n, beta=0.01)
+            elif i == 1:
+                agent = Agent2(n, beta=0.1, alpha=0.1)
+            else:
+                agent = Agent3(n, eps=0.1)
+            optimal_action = env.get_optimal_action()
+            for p in range(plays_num):
+                a = agent.select_action()
+                r = env.give_reward(a)
+                agent.receive_reward(a, r)
+                if a == optimal_action:
+                    optimal_actions[p] += 1
+        optimal_actions = [100*x/tasks_num for x in optimal_actions]
+        plt.plot(plays, optimal_actions, label=labels[i])
     
     plt.xlabel('Plays')
     plt.ylabel('% Optimal Action')
