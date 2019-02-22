@@ -36,12 +36,13 @@ class Environment(object):
 
 
 class Agent(object):
-    def __init__(self, env, states_num, actions_num, gamma, theta):
-        self.env = env
+    def __init__(self, states_num, actions_num, gamma, theta, P, R):
         self.states_num = states_num
         self.actions_num = actions_num
         self.gamma = gamma
         self.theta = theta
+        self.P = P
+        self.R = R
         self.V = np.zeros(states_num)
         self.policy = np.zeros((states_num, actions_num))
         for s in range(1, states_num - 1):
@@ -49,38 +50,32 @@ class Agent(object):
                 self.policy[s, a] = 0.25
     
     def evaluate_policy(self):     
-        states_num = self.states_num
-        actions_num = self.actions_num
-        theta = self.theta
-        V = self.V
-        gamma = self.gamma
-        P = self.env.P
-        R = self.env.R
         delta = self.theta + 1
-        policy = self.policy
         k = 0
     
-        while delta > theta:
+        while delta > self.theta:
             print("k =", k)
-            print(V.reshape(4, 4))
+            print(self.V.reshape(4, 4))
             k += 1
             delta = 0
-            for s in range(states_num):
-                old_v = V[s]
+            for s in range(self.states_num):
+                old_v = self.V[s]
                 new_v = 0
-                for a in range(actions_num):
-                    temp_sum = 0
-                    for next_s in range(states_num):
-                        temp_sum += P[s, a, next_s]*(R[s, a, next_s] + gamma*V[next_s])
-                    new_v += policy[s, a]*temp_sum
-                V[s] = new_v
+                for a in range(self.actions_num):
+                    q = 0
+                    for next_s in range(self.states_num):
+                        q += self.P[s, a, next_s]*(self.R[s, a, next_s] + self.gamma*self.V[next_s])
+                    new_v += self.policy[s, a]*q
+                self.V[s] = new_v
                 delta = max(delta, abs(new_v - old_v))
 
 
 
 def main():
-    env = Environment(states_num=16, actions_num=4)
-    agent = Agent(env=env, states_num=16, actions_num=4, gamma=1.0, theta=1e-6)
+    states_num = 16
+    actions_num = 4
+    env = Environment(states_num, actions_num)
+    agent = Agent(states_num, actions_num, gamma=1.0, theta=1e-6, P=env.P, R=env.R)
 
     agent.evaluate_policy()
 
