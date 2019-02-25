@@ -156,9 +156,9 @@ def plot_policy_and_V(policy, V):
 
 
 class Agent(object):
-    def __init__(self):
-        self.Q = defaultdict(lambda: [0, 0])
-        self.cnt_Q = defaultdict(lambda: [0, 0])
+    def __init__(self, actions_num):
+        self.Q = defaultdict(lambda: np.zeros(actions_num))
+        self.cnt_Q = defaultdict(lambda: np.zeros(actions_num))
         self.V = defaultdict(float)
         self.cnt_V = defaultdict(int)
         self.policy = defaultdict(int)
@@ -179,7 +179,7 @@ class Agent(object):
 def main():
     np.random.seed(42)
     episodes_num = 2000000
-    agent = Agent()
+    agent = Agent(actions_num=2)
     
     for i in range(episodes_num):
         reward, states, actions = generate_episode(agent.policy)
