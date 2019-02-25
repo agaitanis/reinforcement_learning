@@ -155,26 +155,38 @@ def plot_policy_and_V(policy, V):
     plt.show()
 
 
+class Agent(object):
+    def __init__(self):
+        self.Q = defaultdict(lambda: [0, 0])
+        self.cnt_Q = defaultdict(lambda: [0, 0])
+        self.V = defaultdict(float)
+        self.cnt_V = defaultdict(int)
+        self.policy = defaultdict(int)
+
+    def evaluate_policy(self, reward, states, actions):
+        for s, a in zip(states, actions):
+            self.cnt_Q[s][a] += 1
+            self.Q[s][a] += (reward - self.Q[s][a])/self.cnt_Q[s][a]
+        for s in states:
+            self.cnt_V[s] += 1
+            self.V[s] += (reward - self.V[s])/self.cnt_V[s]
+    
+    def improve_policy(self, states):
+        for s in states:
+            self.policy[s] = np.argmax(self.Q[s])
+
+
 def main():
     np.random.seed(42)
     episodes_num = 2000000
-    Q = defaultdict(lambda: [0, 0])
-    cnt_Q = defaultdict(lambda: [0, 0])
-    V = defaultdict(float)
-    cnt_V = defaultdict(int)
-    policy = get_initial_policy()
+    agent = Agent()
     
     for i in range(episodes_num):
-        reward, states, actions = generate_episode(policy)
-        for s, a in zip(states, actions):
-            cnt_Q[s][a] += 1
-            Q[s][a] += (reward - Q[s][a])/cnt_Q[s][a]
-        for s in states:
-            cnt_V[s] += 1
-            V[s] += (reward - V[s])/cnt_V[s]
-            policy[s] = np.argmax(Q[s])
+        reward, states, actions = generate_episode(agent.policy)
+        agent.evaluate_policy(reward, states, actions)
+        agent.improve_policy(states)
 
-    plot_policy_and_V(policy, V)
+    plot_policy_and_V(agent.policy, agent.V)
 
 
 if __name__ == '__main__':

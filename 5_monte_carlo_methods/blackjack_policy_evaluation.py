@@ -84,6 +84,14 @@ def generate_episode(policy):
     return reward, states
 
 
+def policy_evaluation(agent, episodes_num):
+    for i in range(episodes_num):
+        reward, states = generate_episode(agent.policy)
+        agent.evaluate_policy(reward, states)
+    
+    return agent.V
+
+
 def plot_V(V, ax1, ax2):
     z1 = np.zeros((10, 10))
     z2 = np.zeros((10, 10))
@@ -108,48 +116,51 @@ def plot_V(V, ax1, ax2):
     ax2.set_zlim(-1, 1)
 
 
-def policy_evaluation(episodes_num, ax1, ax2):
-    np.random.seed(0)
-    V = {}
-    cnt = {}
-    policy = {}
-    
-    for player_sum in range(12, 22):
-        for dealer_showing in range(1, 11):
-            for usable_ace in (True, False):
-                s = (player_sum, dealer_showing, usable_ace)
-                V[s] = 0
-                cnt[s] = 0
-                if player_sum >= 20:
-                    policy[s] = STICK
-                else:
-                    policy[s] = HIT
-    
-    for i in range(episodes_num):
-        reward, states = generate_episode(policy)
-        for s in states:
-            cnt[s] += 1
-            V[s] += (reward - V[s])/cnt[s]
+class Agent(object):
+    def __init__(self):
+        self.V = {}
+        self.cnt = {}
+        self.policy = {}
+        
+        for player_sum in range(12, 22):
+            for dealer_showing in range(1, 11):
+                for usable_ace in (True, False):
+                    s = (player_sum, dealer_showing, usable_ace)
+                    self.V[s] = 0
+                    self.cnt[s] = 0
+                    if player_sum >= 20:
+                        self.policy[s] = STICK
+                    else:
+                        self.policy[s] = HIT
 
-    plot_V(V, ax1, ax2)
+    
+    def evaluate_policy(self, reward, states):
+        for s in states:
+            self.cnt[s] += 1
+            self.V[s] += (reward - self.V[s])/self.cnt[s]
 
 
 def main():
+    np.random.seed(42)
     fig = plt.figure()
     
+    agent = Agent()
+    V = policy_evaluation(agent, 10000)
     ax1 = fig.add_subplot(2, 2, 1, projection='3d')
     ax1.set_title('After 10,000 episodes\nUsable ace')
     ax2 = fig.add_subplot(2, 2, 3, projection='3d')
     ax2.set_title('No usable ace')
-    policy_evaluation(10000, ax1, ax2)
+    plot_V(V, ax1, ax2)
     
+    agent = Agent()
+    V = policy_evaluation(agent, 500000)
     ax1 = fig.add_subplot(2, 2, 2, projection='3d')
     ax1.set_title('After 500,000 episodes\nUsable ace')
     ax2 = fig.add_subplot(2, 2, 4, projection='3d')
     ax2.set_title('No usable ace')
     ax2.set_xlabel('Dealer showing')
     ax2.set_ylabel('Player sum')
-    policy_evaluation(500000, ax1, ax2)
+    plot_V(V, ax1, ax2)
     
     plt.show()
 

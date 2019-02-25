@@ -13,7 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 HIT = 0
 STICK = 1
-A = (HIT, STICK)
+ACTIONS = (HIT, STICK)
 
 
 def generate_episode(policy):
@@ -54,7 +54,7 @@ def generate_episode(policy):
         if player_sum > 21:
             break
         s = (player_sum, dealer_showing, usable_ace)
-        action = np.random.choice(A, p=policy[s])
+        action = np.random.choice(ACTIONS, p=policy[s])
         states.append(s)
         actions.append(action)
     
@@ -144,32 +144,49 @@ def plot_policy_and_V(policy, V):
     plt.show()
 
 
+class Agent(object):
+    def __init__(self, actions, eps):
+        actions_num = len(actions)
+        self.actions = actions
+        self.eps = eps
+        self.Q = defaultdict(lambda: np.zeros(actions_num))
+        self.cnt_Q = defaultdict(lambda: np.zeros(actions_num))
+        self.V = defaultdict(float)
+        self.cnt_V = defaultdict(int)
+        self.policy = defaultdict(lambda: np.ones(actions_num)/actions_num)
+    
+    
+    def evaluate_policy(self, reward, states, actions):
+        for s, a in zip(states, actions):
+            self.cnt_Q[s][a] += 1
+            self.Q[s][a] += (reward - self.Q[s][a])/self.cnt_Q[s][a]
+        for s in states:
+            self.cnt_V[s] += 1
+            self.V[s] += (reward - self.V[s])/self.cnt_V[s]
+
+    
+    def improve_policy(self, states):
+        actions_num = len(self.actions)
+        for s in states:
+            greedy_action = np.argmax(self.Q[s])
+            for a in self.actions:
+                if a == greedy_action:
+                    self.policy[s][a] = 1 - self.eps + self.eps/actions_num
+                else:
+                    self.policy[s][a] = self.eps/actions_num
+
+
 def main():
     np.random.seed(0)
-    eps = 0.2
     episodes_num = 2000000
-    Q = defaultdict(lambda: [0, 0])
-    cnt_Q = defaultdict(lambda: [0, 0])
-    V = defaultdict(float)
-    cnt_V = defaultdict(int)
-    policy = defaultdict(lambda: len(A)*[1/len(A)])
+    agent = Agent(ACTIONS, eps=0.2)
     
     for i in range(episodes_num):
-        reward, states, actions = generate_episode(policy)
-        for s, a in zip(states, actions):
-            cnt_Q[s][a] += 1
-            Q[s][a] += (reward - Q[s][a])/cnt_Q[s][a]
-        for s in states:
-            cnt_V[s] += 1
-            V[s] += (reward - V[s])/cnt_V[s]
-            greedy_action = np.argmax(Q[s])
-            for a in A:
-                if a == greedy_action:
-                    policy[s][a] = 1 - eps + eps/len(A)
-                else:
-                    policy[s][a] = eps/len(A)
+        reward, states, actions = generate_episode(agent.policy)
+        agent.evaluate_policy(reward, states, actions)
+        agent.improve_policy(states)
 
-    plot_policy_and_V(policy, V)
+    plot_policy_and_V(agent.policy, agent.V)
 
 
 if __name__ == '__main__':
