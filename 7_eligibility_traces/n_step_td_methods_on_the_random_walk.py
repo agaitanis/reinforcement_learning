@@ -6,51 +6,84 @@ Reinforcement Learning by Sutton and Barto
 Example 7.1: n-Step TD Methods on the Random Walk
 """
 import numpy as np
+from collections import defaultdict
 import matplotlib.pyplot as plt
 from collections import deque
 
 
-def update_V_from_buffer(V, buffer, alpha, gamma):
-    n = len(buffer)
-    R = 0
-    for i, (s, r, new_s) in enumerate(buffer):
-        R += np.power(gamma, i)*r
-    new_s = buffer[-1][2]
-    R += np.power(gamma, n)*V[new_s]
-    s = buffer[0][0]
-    V[s] += alpha*(R - V[s])
+class Environment(object):
+    def __init__(self):
+        self.states = range(21)
+        self.start_state = 10
+        self.end_states = (self.states[0], self.states[-1])
+        self.rewards = np.zeros(len(self.states))
+        self.rewards[0] = -1
+        self.rewards[-1] = 1
+    
+    
+    def respond_to_action(self, s, a):
+        return self.rewards[s + a], s + a
+
+
+class Agent(object):
+    def __init__(self, alpha, gamma, n):
+        self.alpha = alpha
+        self.gamma = gamma
+        self.n = n
+        self.V = defaultdict(float)
+        self.buffer = deque(maxlen=n)
+
+    
+    def select_action(self):
+        return np.random.choice((-1, 1))
+
+
+    def update_V_from_buffer(self):
+        n = len(self.buffer)
+        R = 0
+        for i, (s, r, new_s) in enumerate(self.buffer):
+            R += np.power(self.gamma, i)*r
+        new_s = self.buffer[-1][2]
+        R += np.power(self.gamma, n)*self.V[new_s]
+        s = self.buffer[0][0]
+        self.V[s] += self.alpha*(R - self.V[s])    
+
+    
+    def receive_reward(self, s, r, new_s):
+        self.buffer.append((s, r, new_s))
+        if len(self.buffer) >= self.n:
+            self.update_V_from_buffer()
+
+
+    def start_episode(self):
+        self.buffer.clear()
+    
+    
+    def end_episode(self):
+        while len(self.buffer) > 1:
+            self.buffer.popleft()
+            self.update_V_from_buffer()
 
 
 def random_walk(n, alpha):
-    states = range(21)
-    start_state = 10
-    end_states = (states[0], states[-1])
-    episodes_num = 10
-    gamma = 1
-    V = np.zeros(len(states))
-    rewards = np.zeros(len(states))
+    env = Environment()
+    agent = Agent(alpha=alpha, gamma=1.0, n=n)
+    episodes_num = 10    
     true_V = 0.1*np.arange(21) - 1
     error = 0
-    
-    rewards[0] = -1
-    rewards[-1] = 1
-    
+
     for i in range(episodes_num):
-        s = start_state
-        buffer = deque(maxlen=n)
-        while s not in end_states:
-            a = np.random.choice((-1, 1))
-            new_s = s + a
-            r = rewards[new_s]
-            buffer.append((s, r, new_s))
+        s = env.start_state
+        agent.start_episode()
+        while s not in env.end_states:
+            a = agent.select_action()
+            r, new_s = env.respond_to_action(s, a)            
+            agent.receive_reward(s, r, new_s)
             s = new_s
-            if len(buffer) < n:
-                continue
-            update_V_from_buffer(V, buffer, alpha, gamma)
-        while len(buffer) > 1:
-            buffer.popleft()
-            update_V_from_buffer(V, buffer, alpha, gamma)
-        error += np.sqrt(np.mean([np.power(V[s] - true_V[s], 2) for s in states[1:-1]]))
+        agent.end_episode()
+        
+        mse = np.mean([np.power(agent.V[s] - true_V[s], 2) for s in env.states[1:-1]])
+        error += np.sqrt(mse)
         
     error /= episodes_num
     
