@@ -24,17 +24,19 @@ class Environment(object):
 
 
 class Agent(object):
-    def __init__(self, alpha, gamma, l):
+    def __init__(self, alpha, gamma, l, replacing_traces):
         self.alpha = alpha
         self.gamma = gamma
         self.l = l
+        self.replacing_traces = replacing_traces
         self.V = defaultdict(float)
         self.e = defaultdict(float)
-        self.states = range(21)
+        self.visited_states = set()
 
 
     def start_episode(self):
         self.e.clear()
+        self.visited_states.clear()
 
 
     def select_action(self):
@@ -42,16 +44,20 @@ class Agent(object):
 
     
     def receive_reward(self, s, r, new_s):
+        self.visited_states.add(s)
         delta = r + self.gamma*self.V[new_s] - self.V[s]
-        self.e[s] += 1
-        for s in self.states:
+        if self.replacing_traces:
+            self.e[s] = 1
+        else:
+            self.e[s] += 1
+        for s in self.visited_states:
             self.V[s] += self.alpha*delta*self.e[s]
             self.e[s] *= self.gamma*self.l
  
 
-def random_walk(l, alpha):
+def random_walk(l, alpha, replacing_traces):
     env = Environment()
-    agent = Agent(alpha=alpha, gamma=1.0, l=l)
+    agent = Agent(alpha=alpha, gamma=1.0, l=l, replacing_traces=replacing_traces)
     episodes_num = 10
     true_V = 0.1*np.arange(21) - 1
     error = 0
@@ -73,7 +79,7 @@ def random_walk(l, alpha):
     return error
 
 
-def main():
+def random_walk_experiment(replacing_traces):
     np.random.seed(0)
     lambdas = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 0.975, 0.99, 1.0]
     alphas = [0.0, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.25,
@@ -81,6 +87,7 @@ def main():
     runs_num = 100
     
     plt.figure()
+    print('replacing_traces =', replacing_traces)
     
     for l in lambdas:
         print('l =', l)
@@ -89,7 +96,7 @@ def main():
             print('alpha =', alpha)
             mean_error = 0
             for run in range(runs_num):
-                error = random_walk(l, alpha)
+                error = random_walk(l, alpha, replacing_traces)
                 mean_error += error
             mean_error /= runs_num
             errors.append(mean_error)
@@ -98,8 +105,13 @@ def main():
     
     plt.xlabel('α')
     plt.ylabel('RMS error')
-    plt.ylim(0.25, 0.55)
+    plt.ylim(0.2, 0.55)
     plt.legend()
+
+
+def main():
+    random_walk_experiment(False)
+    random_walk_experiment(True)
 
 
 if __name__ == "__main__":
