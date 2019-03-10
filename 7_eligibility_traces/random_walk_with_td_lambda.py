@@ -2,13 +2,11 @@
 """
 Reinforcement Learning by Sutton and Barto
 7. Eligibility Traces
-7.1 n-Step TD Prediction
-Example 7.1: n-Step TD Methods on the Random Walk
+Example 7.3: Random Walk with TD(λ)
 """
 import numpy as np
 from collections import defaultdict
 import matplotlib.pyplot as plt
-from collections import deque
 
 
 class Environment(object):
@@ -26,49 +24,35 @@ class Environment(object):
 
 
 class Agent(object):
-    def __init__(self, alpha, gamma, n):
+    def __init__(self, alpha, gamma, l):
         self.alpha = alpha
         self.gamma = gamma
-        self.n = n
+        self.l = l
         self.V = defaultdict(float)
-        self.buffer = deque(maxlen=n)
-
-    
-    def select_action(self):
-        return np.random.choice((-1, 1))
-
-
-    def update_V_from_buffer(self):
-        n = len(self.buffer)
-        R = 0
-        for i, (s, r, new_s) in enumerate(self.buffer):
-            R += np.power(self.gamma, i)*r
-        new_s = self.buffer[-1][2]
-        R += np.power(self.gamma, n)*self.V[new_s]
-        s = self.buffer[0][0]
-        self.V[s] += self.alpha*(R - self.V[s])    
-
-    
-    def receive_reward(self, s, r, new_s):
-        self.buffer.append((s, r, new_s))
-        if len(self.buffer) >= self.n:
-            self.update_V_from_buffer()
+        self.e = defaultdict(float)
+        self.states = range(21)
 
 
     def start_episode(self):
-        self.buffer.clear()
-    
-    
-    def end_episode(self):
-        while len(self.buffer) > 1:
-            self.buffer.popleft()
-            self.update_V_from_buffer()
+        self.e.clear()
 
 
-def random_walk(n, alpha):
+    def select_action(self):
+        return np.random.choice((-1, 1))
+
+    
+    def receive_reward(self, s, r, new_s):
+        delta = r + self.gamma*self.V[new_s] - self.V[s]
+        self.e[s] += 1
+        for s in self.states:
+            self.V[s] += self.alpha*delta*self.e[s]
+            self.e[s] *= self.gamma*self.l
+ 
+
+def random_walk(l, alpha):
     env = Environment()
-    agent = Agent(alpha=alpha, gamma=1.0, n=n)
-    episodes_num = 10    
+    agent = Agent(alpha=alpha, gamma=1.0, l=l)
+    episodes_num = 10
     true_V = 0.1*np.arange(21) - 1
     error = 0
 
@@ -80,9 +64,8 @@ def random_walk(n, alpha):
             r, new_s = env.respond_to_action(s, a)            
             agent.receive_reward(s, r, new_s)
             s = new_s
-        agent.end_episode()
         
-        mse = np.mean([np.power(agent.V[s] - true_V[s], 2) for s in env.states[1:-1]])
+        mse = np.mean([(agent.V[s] - true_V[s])**2 for s in env.states[1:-1]])
         error += np.sqrt(mse)
         
     error /= episodes_num
@@ -92,25 +75,26 @@ def random_walk(n, alpha):
 
 def main():
     np.random.seed(0)
-    n_steps = [1, 2, 3, 5, 8, 15, 30, 60, 100, 200, 1000]
-    alphas = [0, 0.01, 0.02, 0.05,
-              0.1, 0.2, 0.3, 0.4, 0.5,
-              0.6, 0.7, 0.8, 0.9, 1.0]
+    lambdas = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 0.975, 0.99, 1.0]
+    alphas = [0.0, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.25,
+              0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     runs_num = 100
     
     plt.figure()
     
-    for n in n_steps:
-        print('n =', n)
+    for l in lambdas:
+        print('l =', l)
         errors = []
         for alpha in alphas:
+            print('alpha =', alpha)
             mean_error = 0
             for run in range(runs_num):
-                error = random_walk(n, alpha)
+                error = random_walk(l, alpha)
                 mean_error += error
             mean_error /= runs_num
             errors.append(mean_error)
-        plt.plot(alphas, errors, label=str(n))
+        plt.plot(alphas, errors, label="λ = " + str(l))
+        print()
     
     plt.xlabel('α')
     plt.ylabel('RMS error')
