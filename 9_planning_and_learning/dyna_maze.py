@@ -79,6 +79,26 @@ class Agent(object):
         self.plan_policy()
 
 
+def print_policy(env, agent):
+    for i in range(len(env.grid)):
+        for j in range(len(env.grid[i])):
+            square = env.grid[i][j]
+            s = (i, j)
+            if (i, j) == env.goal_state:
+                print('G', end='')
+            elif square is Square.OBSTACLE:
+                print('O', end='')
+            else:
+                q = agent.Q[s]
+                a = np.flatnonzero(q == max(q))
+                if len(a) == len(q):
+                    print(' ', end='')
+                else:
+                    print(agent.action_to_str[a[0]], end='')
+            print(' ', end='')
+        print()
+    
+
 def run_maze_experiment(planning_steps):
     np.random.seed(0)
     env = Environment()
@@ -88,6 +108,7 @@ def run_maze_experiment(planning_steps):
     episodes = range(episodes_num)
     
     print('planning steps =', planning_steps)
+    print()
     
     for i in range(runs_num):
         agent = Agent(planning_steps)
@@ -101,11 +122,16 @@ def run_maze_experiment(planning_steps):
                 agent.improve_policy(s, a, r, new_s)
                 steps_num += 1
                 s = new_s
+            if i == 0 and j == 1:
+                print("policy after 2 episodes:")
+                print_policy(env, agent)
             steps[j] += steps_num
     
     steps /= runs_num
     
     plt.plot(episodes, steps, label=str(planning_steps) + " planning steps")
+    
+    print()
 
 
 def main():
